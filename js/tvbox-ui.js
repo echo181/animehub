@@ -20,10 +20,12 @@ async function initTVBox() {
 
     if (configs.length === 0) {
         const presets = [
-            { url: 'https://qiaoji8.com/tvbox/bj8.json', name: '俏佳人' },
-            { url: 'http://www.饭太硬.com/tv/', name: '饭太硬' },
-            { url: 'http://fan.888484.xyz/tv', name: 'Fan' },
-            { url: 'http://www.荷城茶秀.com/tv/', name: '荷城茶秀' }
+            { url: 'http://饭太硬.top/tv', name: '饭太硬' },
+            { url: 'https://qiaoji8.com/tvbox/json.json', name: '俏佳人' },
+            { url: 'http://hccx.top/tv', name: '荷城茶秀' },
+            { url: 'http://肥猫.com', name: '肥猫' },
+            { url: 'https://yydsys.top/duo', name: '天天开心' },
+            { url: 'https://0a.io/tv', name: '0a' }
         ];
         presets.forEach(p => TVBoxStore.addConfig(p.url, p.name));
     }

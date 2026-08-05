@@ -4,10 +4,13 @@
  */
 
 // ========== CORS 代理多路回退 ==========
+// 按优先级排列，自动逐个尝试
 const CORS_PROXIES = [
     (url) => `https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(url)}`,
     (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
     (url) => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
+    (url) => `https://thingproxy.freeboard.io/fetch/${url}`,
+    (url) => `https://proxy.cors.sh/${url}`,
     (url) => url // 直连尝试（某些 API 可能已支持 CORS）
 ];
 
@@ -15,21 +18,29 @@ let currentProxyIndex = 0;
 
 async function fetchWithProxy(url, options = {}) {
     let lastError = null;
+    let errors = [];
     for (let i = 0; i < CORS_PROXIES.length; i++) {
         const proxyIdx = (currentProxyIndex + i) % CORS_PROXIES.length;
         const proxyUrl = CORS_PROXIES[proxyIdx](url);
         try {
-            const resp = await fetch(proxyUrl, { ...options, signal: AbortSignal.timeout(15000) });
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 12000);
+            const resp = await fetch(proxyUrl, { ...options, signal: controller.signal });
+            clearTimeout(timeout);
             if (resp.ok) {
                 currentProxyIndex = proxyIdx;
                 return resp;
             }
+            errors.push(`代理${proxyIdx}: HTTP ${resp.status}`);
             lastError = new Error(`HTTP ${resp.status}`);
         } catch (err) {
+            errors.push(`代理${proxyIdx}: ${err.message || 'timeout'}`);
             lastError = err;
         }
     }
-    throw lastError || new Error('所有代理均不可用');
+    const err = new Error(`所有代理均失败: ${errors.join('; ')}`);
+    err.details = errors;
+    throw err;
 }
 
 // ========== TVBox 配置管理 ==========
