@@ -339,8 +339,10 @@ async function playEpisode(index) {
     document.getElementById('detailModal').style.display = 'none';
     document.getElementById('playerModal').style.display = 'flex';
     document.getElementById('playerTitle').textContent = `${currentDetail.name} - ${ep.title}`;
+    document.getElementById('tvboxPlayerTitle').textContent = `${currentDetail.name} - ${ep.title}`;
     document.getElementById('tvboxLoading').style.display = 'flex';
     document.getElementById('tvboxPlayerError').style.display = 'none';
+    tvboxShowControls();
 
     renderPlayerEpisodes(index);
 
@@ -387,6 +389,8 @@ async function playEpisode(index) {
         video.onerror = () => {
             showTvboxError('视频加载失败，可能源不可用或跨域限制。请尝试其他源或集数。');
         };
+
+        tvboxInitPlayerControls();
 
     } catch (err) {
         showTvboxError(err.message);
@@ -509,6 +513,299 @@ function hidePlayer() {
     video.removeAttribute('src');
     video.load();
     if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
+    tvboxHideControlsTimer?.();
+    tvboxRotationState = 0;
+    document.getElementById('tvboxPlayerWrap')?.classList.remove('landscape');
+}
+
+// ========== TVBox 播放器控件 ==========
+let tvboxHideControlsTimer = null;
+let tvboxControlsVisible = true;
+let tvboxRotationState = 0;
+let tvboxGestureState = { startX: 0, startY: 0, startVolume: 1, startTime: 0, mode: null, moved: false };
+
+function tvboxFormatTime(sec) {
+    if (!sec || isNaN(sec)) return '00:00';
+    const m = Math.floor(sec / 60);
+    const s = Math.floor(sec % 60);
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+function tvboxShowControls() {
+    const c = document.getElementById('tvboxControls');
+    if (!c) return;
+    c.classList.remove('hidden');
+    tvboxControlsVisible = true;
+    tvboxScheduleHideControls();
+}
+
+function tvboxHideControls() {
+    const c = document.getElementById('tvboxControls');
+    if (!c) return;
+    c.classList.add('hidden');
+    tvboxControlsVisible = false;
+}
+
+function tvboxScheduleHideControls() {
+    tvboxHideControlsTimer?.();
+    tvboxHideControlsTimer = setTimeout(() => {
+        const v = document.getElementById('tvboxPlayer');
+        if (v && !v.paused) tvboxHideControls();
+    }, 3500);
+}
+
+function tvboxToggleControls() {
+    if (tvboxControlsVisible) tvboxHideControls();
+    else tvboxShowControls();
+}
+
+function toggleTvboxPlay(e) {
+    if (e) e.stopPropagation();
+    const v = document.getElementById('tvboxPlayer');
+    if (!v) return;
+    if (v.paused) {
+        v.play().catch(() => {});
+    } else {
+        v.pause();
+    }
+}
+
+function tvboxSkip(seconds) {
+    const v = document.getElementById('tvboxPlayer');
+    if (!v || !v.duration) return;
+    const newTime = Math.max(0, Math.min(v.duration, v.currentTime + seconds));
+    v.currentTime = newTime;
+
+    const ind = document.getElementById('tvboxSeekIndicator');
+    const icon = document.getElementById('tvboxSeekIcon');
+    const timeEl = document.getElementById('tvboxSeekTime');
+    if (ind && icon && timeEl) {
+        icon.textContent = seconds < 0 ? '⏪' : '⏩';
+        timeEl.textContent = tvboxFormatTime(newTime);
+        ind.style.display = 'flex';
+        clearTimeout(tvboxSkip._t);
+        tvboxSkip._t = setTimeout(() => { ind.style.display = 'none'; }, 600);
+    }
+}
+
+function tvboxSetSpeed(rate) {
+    const v = document.getElementById('tvboxPlayer');
+    if (v) v.playbackRate = parseFloat(rate);
+}
+
+function tvboxToggleMute() {
+    const v = document.getElementById('tvboxPlayer');
+    if (!v) return;
+    v.muted = !v.muted;
+    document.getElementById('tvboxMuteBtn').textContent = v.muted ? '🔇' : '🔊';
+}
+
+function tvboxFullscreen() {
+    const wrap = document.getElementById('tvboxPlayerWrap');
+    const v = document.getElementById('tvboxPlayer');
+    if (!wrap || !v) return;
+
+    const doc = document;
+    const isFs = doc.fullscreenElement || doc.webkitFullscreenElement;
+
+    if (!isFs) {
+        if (wrap.requestFullscreen) wrap.requestFullscreen().catch(() => {});
+        else if (wrap.webkitRequestFullscreen) wrap.webkitRequestFullscreen();
+        else if (v.webkitEnterFullscreen) v.webkitEnterFullscreen();
+    } else {
+        if (doc.exitFullscreen) doc.exitFullscreen().catch(() => {});
+        else if (doc.webkitExitFullscreen) doc.webkitExitFullscreen();
+    }
+}
+
+function rotateTvboxScreen() {
+    const wrap = document.getElementById('tvboxPlayerWrap');
+    if (!wrap) return;
+    wrap.classList.toggle('landscape');
+    const isLandscape = wrap.classList.contains('landscape');
+    const icon = isLandscape ? '📱' : '🔄';
+    document.querySelector('.tvbox-top-right .tvbox-btn').textContent = icon;
+}
+
+let tvboxControlsInitialized = false;
+
+function tvboxInitPlayerControls() {
+    if (tvboxControlsInitialized) return;
+    tvboxControlsInitialized = true;
+
+    const v = document.getElementById('tvboxPlayer');
+    if (!v) return;
+
+    v.addEventListener('play', () => {
+        document.getElementById('tvboxPlayPauseBtn').textContent = '⏸';
+        document.getElementById('tvboxCenterPlay').classList.remove('visible');
+        tvboxScheduleHideControls();
+    });
+
+    v.addEventListener('pause', () => {
+        document.getElementById('tvboxPlayPauseBtn').textContent = '▶';
+        document.getElementById('tvboxCenterPlay').classList.add('visible');
+        tvboxShowControls();
+    });
+
+    v.addEventListener('ended', () => {
+        document.getElementById('tvboxPlayPauseBtn').textContent = '▶';
+        tvboxShowControls();
+    });
+
+    v.addEventListener('timeupdate', () => {
+        const ct = document.getElementById('tvboxCurrentTime');
+        const pt = document.getElementById('tvboxProgressPlayed');
+        const th = document.getElementById('tvboxProgressThumb');
+        if (ct) ct.textContent = tvboxFormatTime(v.currentTime);
+        if (pt && v.duration) pt.style.width = (v.currentTime / v.duration * 100) + '%';
+        if (th && v.duration) th.style.left = (v.currentTime / v.duration * 100) + '%';
+    });
+
+    v.addEventListener('loadedmetadata', () => {
+        const tt = document.getElementById('tvboxTotalTime');
+        if (tt) tt.textContent = tvboxFormatTime(v.duration);
+    });
+
+    v.addEventListener('progress', () => {
+        if (v.buffered.length > 0 && v.duration) {
+            const buf = document.getElementById('tvboxProgressBuffered');
+            if (buf) buf.style.width = (v.buffered.end(v.buffered.length - 1) / v.duration * 100) + '%';
+        }
+    });
+
+    v.addEventListener('waiting', () => {
+        document.getElementById('tvboxLoading').style.display = 'flex';
+    });
+
+    v.addEventListener('playing', () => {
+        document.getElementById('tvboxLoading').style.display = 'none';
+    });
+
+    // 单击切换控件显示/隐藏，双击播放/暂停
+    let lastTap = 0;
+    v.addEventListener('click', (e) => {
+        const now = Date.now();
+        if (now - lastTap < 300) {
+            e.preventDefault();
+            toggleTvboxPlay();
+            lastTap = 0;
+        } else {
+            lastTap = now;
+            setTimeout(() => {
+                if (lastTap !== 0 && Date.now() - lastTap >= 290) {
+                    tvboxToggleControls();
+                }
+            }, 300);
+        }
+    });
+
+    // 触摸滑动手势
+    const wrap = document.getElementById('tvboxPlayerWrap');
+    if (wrap) {
+        wrap.addEventListener('touchstart', (e) => {
+            const t = e.touches[0];
+            tvboxGestureState = {
+                startX: t.clientX,
+                startY: t.clientY,
+                startVolume: v.volume,
+                startTime: v.currentTime,
+                mode: null,
+                moved: false
+            };
+            tvboxShowControls();
+        }, { passive: true });
+
+        wrap.addEventListener('touchmove', (e) => {
+            const t = e.touches[0];
+            const gs = tvboxGestureState;
+            const dx = t.clientX - gs.startX;
+            const dy = t.clientY - gs.startY;
+
+            if (!gs.mode && Math.abs(dx) > 15) {
+                gs.mode = 'seek';
+                gs.moved = true;
+            } else if (!gs.mode && Math.abs(dy) > 15) {
+                gs.mode = 'volume';
+                gs.moved = true;
+            }
+
+            if (gs.mode === 'seek' && v.duration) {
+                const delta = (dx / wrap.offsetWidth) * v.duration * 2;
+                const newTime = Math.max(0, Math.min(v.duration, gs.startTime + delta));
+                v.currentTime = newTime;
+                const ind = document.getElementById('tvboxSeekIndicator');
+                const icon = document.getElementById('tvboxSeekIcon');
+                const timeEl = document.getElementById('tvboxSeekTime');
+                if (ind && icon && timeEl) {
+                    icon.textContent = dx < 0 ? '⏪' : '⏩';
+                    timeEl.textContent = tvboxFormatTime(newTime);
+                    ind.style.display = 'flex';
+                }
+            } else if (gs.mode === 'volume') {
+                const delta = dy / wrap.offsetHeight;
+                const newVol = Math.max(0, Math.min(1, gs.startVolume - delta));
+                v.volume = newVol;
+                v.muted = newVol === 0;
+                document.getElementById('tvboxMuteBtn').textContent = newVol === 0 ? '🔇' : '🔊';
+            }
+        }, { passive: true });
+
+        wrap.addEventListener('touchend', () => {
+            const gs = tvboxGestureState;
+            if (gs.mode === 'seek') {
+                setTimeout(() => {
+                    const ind = document.getElementById('tvboxSeekIndicator');
+                    if (ind) ind.style.display = 'none';
+                }, 300);
+            }
+            if (gs.moved) tvboxScheduleHideControls();
+            tvboxGestureState.mode = null;
+        });
+    }
+
+    // 进度条点击/拖拽
+    const pw = document.getElementById('tvboxProgressWrap');
+    if (pw) {
+        let isDragging = false;
+
+        function seekTo(e) {
+            if (!v.duration) return;
+            const rect = pw.getBoundingClientRect();
+            const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+            const pct = Math.max(0, Math.min(1, x / rect.width));
+            v.currentTime = pct * v.duration;
+        }
+
+        pw.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            seekTo(e);
+        });
+        pw.addEventListener('mousemove', (e) => {
+            if (isDragging) seekTo(e);
+        });
+        document.addEventListener('mouseup', () => { isDragging = false; });
+
+        pw.addEventListener('touchstart', (e) => { seekTo(e); }, { passive: true });
+        pw.addEventListener('touchmove', (e) => { seekTo(e); }, { passive: true });
+    }
+
+    // 键盘快捷键
+    document.addEventListener('keydown', (e) => {
+        if (document.getElementById('playerModal').style.display !== 'flex') return;
+        if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'SELECT') return;
+        switch (e.key) {
+            case ' ': e.preventDefault(); toggleTvboxPlay(); break;
+            case 'ArrowRight': tvboxSkip(10); break;
+            case 'ArrowLeft': tvboxSkip(-10); break;
+            case 'ArrowUp': e.preventDefault(); v.volume = Math.min(1, v.volume + 0.1); break;
+            case 'ArrowDown': e.preventDefault(); v.volume = Math.max(0, v.volume - 0.1); break;
+            case 'f': case 'F': tvboxFullscreen(); break;
+            case 'Escape': 
+                if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+                break;
+        }
+    });
 }
 
 // ========== 配置管理 ==========

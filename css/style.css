@@ -1704,7 +1704,279 @@ img { max-width: 100%; display: block; }
 @media (max-width: 768px) {
     .detail-modal-header { flex-direction: column; align-items: center; text-align: center; }
     .detail-modal-pic { width: 100px; min-width: 100px; }
-    .player-modal-content .video-wrapper { max-height: 40vh; }
+}
+
+/* ========== TVBox 播放器自定义控件 ========== */
+.tvbox-player-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16/9;
+    background: #000;
+    overflow: hidden;
+    flex-shrink: 0;
+    max-height: 60vh;
+}
+
+.tvbox-player-wrap .video-player {
+    width: 100%;
+    height: 100%;
+    background: #000;
+    display: block;
+    object-fit: contain;
+}
+
+.tvbox-player-wrap .video-player::-webkit-media-controls {
+    display: none !important;
+}
+
+.tvbox-center-play {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: auto;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+    z-index: 5;
+}
+
+.tvbox-center-play.visible {
+    opacity: 1;
+}
+
+.tvbox-center-play .center-play-icon {
+    width: 72px;
+    height: 72px;
+    background: rgba(233, 69, 96, 0.9);
+    border-radius: 50%;
+    font-size: 28px;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+}
+
+.tvbox-seek-indicator {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0,0,0,0.75);
+    border-radius: 12px;
+    padding: 16px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    font-size: 36px;
+    color: #fff;
+    z-index: 6;
+    pointer-events: none;
+    min-width: 100px;
+}
+
+.tvbox-seek-indicator span {
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.tvbox-controls {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    pointer-events: none;
+    opacity: 1;
+    transition: opacity 0.3s ease;
+    z-index: 10;
+}
+
+.tvbox-controls.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.tvbox-controls-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.75), transparent);
+    pointer-events: auto;
+}
+
+.tvbox-btn-close {
+    width: 36px;
+    height: 36px;
+    background: rgba(0,0,0,0.5);
+    border-radius: 50%;
+    color: #fff;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tvbox-player-title {
+    flex: 1;
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tvbox-top-right {
+    display: flex;
+    gap: 6px;
+}
+
+.tvbox-controls-bottom {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px 14px;
+    background: linear-gradient(to top, rgba(0,0,0,0.85), transparent);
+    pointer-events: auto;
+}
+
+.tvbox-progress-wrap {
+    position: relative;
+    flex: 1;
+    height: 6px;
+    background: rgba(255,255,255,0.25);
+    border-radius: 3px;
+    cursor: pointer;
+    touch-action: none;
+    min-width: 60px;
+}
+
+.tvbox-progress-buffered {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    background: rgba(255,255,255,0.4);
+    border-radius: 3px;
+}
+
+.tvbox-progress-played {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    background: var(--primary);
+    border-radius: 3px;
+}
+
+.tvbox-progress-thumb {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 14px;
+    height: 14px;
+    background: #fff;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.tvbox-progress-wrap:hover .tvbox-progress-thumb {
+    opacity: 1;
+}
+
+.tvbox-time {
+    font-size: 12px;
+    color: rgba(255,255,255,0.85);
+    white-space: nowrap;
+    min-width: 90px;
+    text-align: center;
+}
+
+.tvbox-btn {
+    width: 36px;
+    height: 36px;
+    background: rgba(0,0,0,0.5);
+    border-radius: 50%;
+    color: #fff;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.tvbox-btn:hover {
+    background: rgba(233, 69, 96, 0.8);
+}
+
+.tvbox-btn-play {
+    width: 44px;
+    height: 44px;
+    font-size: 20px;
+    background: rgba(233, 69, 96, 0.9);
+}
+
+.tvbox-btn-skip {
+    font-size: 14px;
+}
+
+.tvbox-speed-select {
+    padding: 6px 10px;
+    background: rgba(0,0,0,0.5);
+    border: none;
+    border-radius: 6px;
+    color: #fff;
+    font-size: 12px;
+    cursor: pointer;
+    outline: none;
+    flex-shrink: 0;
+}
+
+.tvbox-speed-select option {
+    background: #1a1a2e;
+    color: #fff;
+}
+
+.tvbox-rotated {
+    transform: rotate(90deg);
+    transform-origin: center center;
+}
+
+/* 横屏旋转模式 */
+.tvbox-player-wrap.landscape {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    aspect-ratio: auto;
+    max-height: none;
+    z-index: 400;
+    background: #000;
+}
+
+.tvbox-player-wrap.landscape .video-player {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+@media (max-width: 768px) {
+    .tvbox-player-wrap { max-height: 45vh; }
+    .tvbox-controls-bottom { gap: 5px; padding: 8px 10px 10px; }
+    .tvbox-btn { width: 32px; height: 32px; font-size: 14px; }
+    .tvbox-btn-play { width: 40px; height: 40px; font-size: 18px; }
+    .tvbox-time { font-size: 11px; min-width: 75px; }
+    .tvbox-progress-wrap { height: 5px; }
+    .tvbox-progress-thumb { width: 12px; height: 12px; }
+    .tvbox-speed-select { font-size: 11px; padding: 5px 7px; }
 }
 
 /* ========== Responsive ========== */

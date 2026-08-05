@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>影视源 - AnimeHub</title>
-    <link rel="stylesheet" href="css/style.css?v=6">
+    <link rel="stylesheet" href="css/style.css?v=8">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎬</text></svg>">
     <script src="https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js"></script>
 </head>
@@ -115,21 +115,72 @@
 
     <!-- 播放器弹窗 -->
     <div class="player-modal" id="playerModal" style="display:none">
-        <div class="player-modal-mask" onclick="hidePlayer()"></div>
         <div class="player-modal-content">
-            <button class="config-close" onclick="hidePlayer()" style="z-index:10">✕</button>
-            <div class="video-wrapper" id="tvboxVideoWrapper">
-                <video id="tvboxPlayer" class="video-player" playsinline preload="metadata"></video>
+            <div class="tvbox-player-wrap" id="tvboxPlayerWrap">
+                <video id="tvboxPlayer" class="video-player" playsinline preload="metadata" webkit-playsinline></video>
+
+                <!-- 加载中 -->
                 <div class="loading-spinner" id="tvboxLoading" style="display:flex">
                     <div class="spinner"></div>
                 </div>
+
+                <!-- 错误提示 -->
                 <div class="player-error" id="tvboxPlayerError" style="display:none">
                     <div class="error-icon">⚠️</div>
                     <div class="error-title">视频加载失败</div>
                     <div class="error-desc" id="tvboxErrorDesc"></div>
                     <button class="btn-primary" onclick="retryTvboxPlay()">🔄 重试</button>
                 </div>
+
+                <!-- 中央大播放按钮（暂停时显示） -->
+                <div class="tvbox-center-play" id="tvboxCenterPlay" onclick="toggleTvboxPlay(event)">
+                    <div class="center-play-icon">▶</div>
+                </div>
+
+                <!-- 快进/快退提示 -->
+                <div class="tvbox-seek-indicator" id="tvboxSeekIndicator" style="display:none">
+                    <span id="tvboxSeekIcon">⏪</span>
+                    <span id="tvboxSeekTime">00:00</span>
+                </div>
+
+                <!-- 控制栏（自动隐藏） -->
+                <div class="tvbox-controls" id="tvboxControls">
+                    <!-- 顶部栏 -->
+                    <div class="tvbox-controls-top">
+                        <button class="tvbox-btn-close" onclick="hidePlayer()">✕</button>
+                        <span class="tvbox-player-title" id="tvboxPlayerTitle"></span>
+                        <div class="tvbox-top-right">
+                            <button class="tvbox-btn" onclick="rotateTvboxScreen()" title="旋转屏幕">🔄</button>
+                        </div>
+                    </div>
+
+                    <!-- 底部控件 -->
+                    <div class="tvbox-controls-bottom">
+                        <div class="tvbox-progress-wrap" id="tvboxProgressWrap">
+                            <div class="tvbox-progress-buffered" id="tvboxProgressBuffered"></div>
+                            <div class="tvbox-progress-played" id="tvboxProgressPlayed"></div>
+                            <div class="tvbox-progress-thumb" id="tvboxProgressThumb"></div>
+                        </div>
+                        <div class="tvbox-time">
+                            <span id="tvboxCurrentTime">00:00</span> / <span id="tvboxTotalTime">00:00</span>
+                        </div>
+                        <button class="tvbox-btn tvbox-btn-skip" onclick="tvboxSkip(-10)" title="快退10秒">⏪</button>
+                        <button class="tvbox-btn tvbox-btn-play" id="tvboxPlayPauseBtn" onclick="toggleTvboxPlay()" title="播放/暂停">▶</button>
+                        <button class="tvbox-btn tvbox-btn-skip" onclick="tvboxSkip(10)" title="快进10秒">⏩</button>
+                        <select class="tvbox-speed-select" id="tvboxSpeedSelect" onchange="tvboxSetSpeed(this.value)" title="播放速度">
+                            <option value="0.5">0.5x</option>
+                            <option value="0.75">0.75x</option>
+                            <option value="1" selected>1x</option>
+                            <option value="1.25">1.25x</option>
+                            <option value="1.5">1.5x</option>
+                            <option value="2">2x</option>
+                        </select>
+                        <button class="tvbox-btn" id="tvboxFullscreenBtn" onclick="tvboxFullscreen()" title="全屏">⛶</button>
+                        <button class="tvbox-btn" id="tvboxMuteBtn" onclick="tvboxToggleMute()" title="静音">🔊</button>
+                    </div>
+                </div>
             </div>
+
             <div class="player-modal-info">
                 <h3 id="playerTitle" class="player-modal-title"></h3>
                 <div class="episode-list" id="playerEpisodeList"></div>
@@ -139,7 +190,7 @@
 
     <div class="toast" id="toast"></div>
 
-    <script src="js/tvbox.js?v=7"></script>
-    <script src="js/tvbox-ui.js?v=7"></script>
+    <script src="js/tvbox.js?v=8"></script>
+    <script src="js/tvbox-ui.js?v=8"></script>
 </body>
 </html>
