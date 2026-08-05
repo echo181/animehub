@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="无广告极速动漫在线观看平台 - 实时更新提醒">
+    <title>AnimeHub - 无广告动漫平台</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎬</text></svg>">
+</head>
+<body>
+    <header class="header">
+        <div class="header-inner">
+            <div class="logo" onclick="goHome()">
+                <span class="logo-icon">🎬</span>
+                <span class="logo-text">AnimeHub</span>
+            </div>
+            <nav class="nav-links">
+                <a href="#home" class="active" data-page="home">首页</a>
+                <a href="#updates" data-page="updates">更新</a>
+                <a href="#favorites" data-page="favorites">收藏</a>
+            </nav>
+            <button class="menu-btn" id="menuBtn" aria-label="菜单">
+                <span></span><span></span><span></span>
+            </button>
+        </div>
+        <div class="search-bar">
+            <input type="text" id="searchInput" placeholder="搜索动漫名称..." autocomplete="off">
+            <button class="search-btn" id="searchBtn">🔍</button>
+        </div>
+        <div class="category-filter">
+            <button class="cat-btn active" data-cat="all">全部</button>
+            <button class="cat-btn" data-cat="热血">热血</button>
+            <button class="cat-btn" data-cat="恋爱">恋爱</button>
+            <button class="cat-btn" data-cat="搞笑">搞笑</button>
+            <button class="cat-btn" data-cat="悬疑">悬疑</button>
+            <button class="cat-btn" data-cat="科幻">科幻</button>
+            <button class="cat-btn" data-cat="日常">日常</button>
+        </div>
+    </header>
+
+    <main class="main">
+        <!-- 首页 -->
+        <section id="homePage" class="page active">
+            <div class="banner" id="banner">
+                <div class="banner-slider" id="bannerSlider"></div>
+                <div class="banner-dots" id="bannerDots"></div>
+            </div>
+            <div class="section">
+                <h2 class="section-title">🔥 热门推荐</h2>
+                <div class="anime-grid" id="hotGrid"></div>
+            </div>
+            <div class="section">
+                <h2 class="section-title">🆕 最近更新</h2>
+                <div class="anime-grid" id="latestGrid"></div>
+            </div>
+            <div class="section">
+                <h2 class="section-title">📚 全部动漫</h2>
+                <div class="anime-grid" id="allGrid"></div>
+            </div>
+        </section>
+
+        <!-- 更新页 -->
+        <section id="updatesPage" class="page">
+            <div class="updates-header">
+                <h2>📢 动漫更新日历</h2>
+                <button class="btn-primary" id="enableNotifyBtn">🔔 开启更新提醒</button>
+            </div>
+            <div class="week-tabs" id="weekTabs"></div>
+            <div class="updates-list" id="updatesList"></div>
+        </section>
+
+        <!-- 收藏页 -->
+        <section id="favoritesPage" class="page">
+            <h2 class="section-title">⭐ 我的追番</h2>
+            <div id="favEmpty" class="empty-state">
+                <div class="empty-icon">📺</div>
+                <p>还没有追番哦~</p>
+                <p class="empty-sub">点击动漫详情页的「追番」按钮添加</p>
+            </div>
+            <div class="anime-grid" id="favGrid"></div>
+        </section>
+    </main>
+
+    <div class="mobile-nav" id="mobileNav">
+        <a href="#home" class="mobile-nav-item active" data-page="home">
+            <span class="nav-icon">🏠</span><span>首页</span>
+        </a>
+        <a href="#updates" class="mobile-nav-item" data-page="updates">
+            <span class="nav-icon">📢</span><span>更新</span>
+        </a>
+        <a href="#favorites" class="mobile-nav-item" data-page="favorites">
+            <span class="nav-icon">⭐</span><span>追番</span>
+        </a>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script src="js/data.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>动漫详情 - AnimeHub</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎬</text></svg>">
+</head>
+<body>
+    <header class="header detail-header">
+        <div class="header-inner">
+            <button class="back-btn" onclick="goBack()">← 返回</button>
+            <div class="logo" onclick="location.href='index.html'">
+                <span class="logo-icon">🎬</span>
+                <span class="logo-text">AnimeHub</span>
+            </div>
+            <div style="width:60px"></div>
+        </div>
+    </header>
+
+    <main class="main detail-main">
+        <div class="detail-hero" id="detailHero"></div>
+        <div class="detail-info" id="detailInfo"></div>
+        <div class="detail-section">
+            <h3 class="detail-section-title">选集播放</h3>
+            <div class="episode-list" id="episodeList"></div>
+        </div>
+        <div class="detail-section">
+            <h3 class="detail-section-title">相关推荐</h3>
+            <div class="anime-grid" id="relatedGrid"></div>
+        </div>
+    </main>
+
+    <div class="toast" id="toast"></div>
+
+    <script src="js/data.js"></script>
+    <script src="js/detail.js"></script>
+</body>
+</html>

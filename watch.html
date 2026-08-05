@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>在线播放 - AnimeHub</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎬</text></svg>">
+</head>
+<body class="watch-body">
+    <div class="player-container">
+        <div class="player-header">
+            <button class="back-btn" onclick="goBack()">← 返回</button>
+            <span class="player-title" id="playerTitle">加载中...</span>
+            <button class="cast-btn" title="投屏">📺</button>
+        </div>
+        <div class="video-wrapper" id="videoWrapper">
+            <video id="videoPlayer" class="video-player" controls playsinline preload="metadata" poster="">
+                您的浏览器不支持视频播放
+            </video>
+            <div class="player-controls-custom" id="playerControls">
+                <button class="play-btn-big" id="bigPlayBtn">▶</button>
+            </div>
+            <div class="loading-spinner" id="loadingSpinner" style="display:none">
+                <div class="spinner"></div>
+            </div>
+        </div>
+        <div class="progress-bar-container">
+            <div class="progress-bar" id="progressBar">
+                <div class="progress-buffered" id="progressBuffered"></div>
+                <div class="progress-played" id="progressPlayed"></div>
+                <div class="progress-thumb" id="progressThumb"></div>
+            </div>
+            <div class="time-display">
+                <span id="currentTime">00:00</span>
+                <span id="totalTime">00:00</span>
+            </div>
+        </div>
+        <div class="player-bottom-controls">
+            <button class="control-btn" id="playPauseBtn">▶</button>
+            <button class="control-btn" id="prevEpBtn">⏮</button>
+            <button class="control-btn" id="nextEpBtn">⏭</button>
+            <div class="volume-control">
+                <button class="control-btn" id="muteBtn">🔊</button>
+                <input type="range" id="volumeSlider" min="0" max="1" step="0.05" value="1">
+            </div>
+            <select class="quality-select" id="qualitySelect">
+                <option value="auto">自动</option>
+                <option value="1080p">1080P</option>
+                <option value="720p">720P</option>
+                <option value="480p">480P</option>
+            </select>
+            <button class="control-btn" id="fullscreenBtn">⛶</button>
+        </div>
+    </div>
+
+    <main class="main watch-main">
+        <div class="watch-info">
+            <h1 class="watch-title" id="watchTitle"></h1>
+            <div class="watch-meta" id="watchMeta"></div>
+            <div class="watch-actions">
+                <button class="btn-fav" id="favBtn">⭐ 追番</button>
+                <button class="btn-primary" id="prevBtn">上一集</button>
+                <button class="btn-primary" id="nextBtn">下一集</button>
+            </div>
+        </div>
+
+        <div class="detail-section">
+            <h3 class="detail-section-title">选集</h3>
+            <div class="episode-list" id="episodeList"></div>
+        </div>
+
+        <div class="detail-section">
+            <h3 class="detail-section-title">动漫详情</h3>
+            <div class="anime-desc" id="animeDesc"></div>
+        </div>
+    </main>
+
+    <div class="toast" id="toast"></div>
+
+    <script src="js/data.js"></script>
+    <script src="js/watch.js"></script>
+</body>
+</html>
