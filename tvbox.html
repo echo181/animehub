@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>影视源 - AnimeHub</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎬</text></svg>">
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js"></script>
+</head>
+<body>
+    <header class="header detail-header">
+        <div class="header-inner">
+            <button class="back-btn" onclick="location.href='index.html'">← 首页</button>
+            <h1 class="header-title">📺 影视源</h1>
+            <button class="back-btn" onclick="showConfigPanel()">⚙️ 源管理</button>
+        </div>
+        <div class="search-bar">
+            <input type="text" id="searchInput" placeholder="搜索动漫名称..." onkeydown="if(event.key==='Enter')doSearch()">
+            <button onclick="doSearch()" class="search-btn">🔍</button>
+        </div>
+    </header>
+
+    <main class="main">
+        <!-- 影视源选择 -->
+        <div class="detail-section">
+            <div class="section-header">
+                <h3 class="section-title">📂 影视源站点</h3>
+                <button class="btn-text" onclick="showConfigPanel()">+ 添加源</button>
+            </div>
+            <div id="siteList" class="source-site-list">
+                <div class="loading-text">正在加载影视源...</div>
+            </div>
+        </div>
+
+        <!-- 分类标签 -->
+        <div id="categorySection" class="detail-section" style="display:none">
+            <div class="category-tabs" id="categoryTabs"></div>
+        </div>
+
+        <!-- 搜索结果 / 分类列表 -->
+        <div id="resultSection" class="detail-section">
+            <h3 class="section-title" id="resultTitle">推荐内容</h3>
+            <div id="videoGrid" class="anime-grid">
+                <div class="empty-state">
+                    <div class="empty-icon">📺</div>
+                    <p>请选择上方影视源站点，或搜索动漫名称</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 观看历史 -->
+        <div id="historySection" class="detail-section">
+            <h3 class="section-title">🕘 观看历史</h3>
+            <div id="historyList" class="history-list"></div>
+        </div>
+    </main>
+
+    <!-- 视频详情弹窗 -->
+    <div class="config-modal" id="detailModal" style="display:none">
+        <div class="config-mask" onclick="hideDetailModal()"></div>
+        <div class="config-content detail-modal-content">
+            <button class="config-close" onclick="hideDetailModal()">✕</button>
+            <div id="detailContent">
+                <div class="loading-text">加载中...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 配置管理弹窗 -->
+    <div class="config-modal" id="configPanel" style="display:none">
+        <div class="config-mask" onclick="hideConfigPanel()"></div>
+        <div class="config-content">
+            <button class="config-close" onclick="hideConfigPanel()">✕</button>
+            <h2>⚙️ 影视源管理</h2>
+            <div class="config-steps">
+                <div class="config-step">
+                    <div class="step-num">+</div>
+                    <div>
+                        <h3>添加 TVBox 配置源</h3>
+                        <p>粘贴 TVBox/影视仓的 JSON 配置地址：</p>
+                        <div class="add-source-form">
+                            <input type="text" id="newConfigUrl" placeholder="https://example.com/tvbox.json" class="source-input">
+                            <input type="text" id="newConfigName" placeholder="名称（可选）" class="source-input" style="margin-top:8px">
+                            <button class="btn-primary" onclick="addConfig()" style="margin-top:8px">添加</button>
+                        </div>
+                        <div class="preset-sources">
+                            <p style="margin-top:12px;font-size:12px;color:var(--text-secondary)">快捷添加：</p>
+                            <button class="preset-btn" onclick="addPreset('https://qiaoji8.com/tvbox/bj8.json', '俏佳人')">俏佳人</button>
+                            <button class="preset-btn" onclick="addPreset('http://www.饭太硬.com/tv/', '饭太硬')">饭太硬</button>
+                            <button class="preset-btn" onclick="addPreset('http://fan.888484.xyz/tv', 'Fan')">Fan</button>
+                            <button class="preset-btn" onclick="addPreset('http://www.荷城茶秀.com/tv/', '荷城茶秀')">荷城茶秀</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="config-step" id="configListContainer">
+                    <div class="step-num">📋</div>
+                    <div style="flex:1">
+                        <h3>已添加的源</h3>
+                        <div id="configList"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 播放器弹窗 -->
+    <div class="player-modal" id="playerModal" style="display:none">
+        <div class="player-modal-mask" onclick="hidePlayer()"></div>
+        <div class="player-modal-content">
+            <button class="config-close" onclick="hidePlayer()" style="z-index:10">✕</button>
+            <div class="video-wrapper" id="tvboxVideoWrapper">
+                <video id="tvboxPlayer" class="video-player" playsinline preload="metadata"></video>
+                <div class="loading-spinner" id="tvboxLoading" style="display:flex">
+                    <div class="spinner"></div>
+                </div>
+                <div class="player-error" id="tvboxPlayerError" style="display:none">
+                    <div class="error-icon">⚠️</div>
+                    <div class="error-title">视频加载失败</div>
+                    <div class="error-desc" id="tvboxErrorDesc"></div>
+                    <button class="btn-primary" onclick="retryTvboxPlay()">🔄 重试</button>
+                </div>
+            </div>
+            <div class="player-modal-info">
+                <h3 id="playerTitle" class="player-modal-title"></h3>
+                <div class="episode-list" id="playerEpisodeList"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script src="js/tvbox.js"></script>
+    <script src="js/tvbox-ui.js"></script>
+</body>
+</html>
