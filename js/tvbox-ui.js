@@ -44,6 +44,7 @@ async function initTVBox() {
 
     renderConfigList();
     renderHistory();
+    renderSourceSelector();
 
     const active = TVBoxStore.getActiveConfig();
     if (active) {
@@ -59,8 +60,27 @@ async function initTVBox() {
     }
 }
 
+// ========== 源选择器下拉 ==========
+function renderSourceSelector() {
+    const configs = TVBoxStore.getConfigs();
+    const active = TVBoxStore.getActiveConfig();
+    const selector = document.getElementById('sourceSelector');
+    if (!selector) return;
+
+    selector.innerHTML = configs.map(c => 
+        `<option value="${c.url}" ${c.url === active?.url ? 'selected' : ''}>${c.name}</option>`
+    ).join('');
+}
+
+function switchSource(url) {
+    if (!url) return;
+    showToast('⏳ 正在切换源...');
+    loadConfig(url);
+}
+
 async function loadConfig(url) {
     TVBoxStore.setActive(url);
+    renderSourceSelector();
     document.getElementById('siteList').innerHTML = '<div class="loading-text">⏳ 正在加载影视源配置...</div>';
 
     try {

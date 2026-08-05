@@ -1320,6 +1320,55 @@ img { max-width: 100%; display: block; }
     font-weight: 600;
 }
 
+/* ========== Source Manager Button & Selector ========== */
+.source-mgr-btn {
+    padding: 8px 14px;
+    font-size: 14px;
+    color: #fff;
+    background: var(--primary);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: var(--transition);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.source-mgr-btn:hover { background: var(--primary-dark); }
+
+.current-source-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    max-width: 1400px;
+    margin: 0 auto;
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border);
+}
+
+.current-source-label {
+    font-size: 13px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.source-selector {
+    flex: 1;
+    padding: 6px 12px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 13px;
+    cursor: pointer;
+    outline: none;
+    transition: var(--transition);
+    max-width: 300px;
+}
+
+.source-selector:focus { border-color: var(--primary); }
+.source-selector:hover { border-color: var(--primary); }
+
 /* ========== TVBox Page ========== */
 .source-site-list {
     display: flex;

@@ -13,11 +13,16 @@
         <div class="header-inner">
             <button class="back-btn" onclick="location.href='index.html'">← 首页</button>
             <h1 class="header-title">📺 影视源</h1>
-            <button class="back-btn" onclick="showConfigPanel()">⚙️ 源管理</button>
+            <button class="source-mgr-btn" onclick="showConfigPanel()">⚙️ 源管理</button>
         </div>
         <div class="search-bar">
             <input type="text" id="searchInput" placeholder="搜索动漫名称..." onkeydown="if(event.key==='Enter')doSearch()">
             <button onclick="doSearch()" class="search-btn">🔍</button>
+        </div>
+        <!-- 当前源指示器 -->
+        <div class="current-source-bar" id="currentSourceBar">
+            <span class="current-source-label">当前源:</span>
+            <select id="sourceSelector" class="source-selector" onchange="switchSource(this.value)"></select>
         </div>
     </header>
 
@@ -134,7 +139,7 @@
 
     <div class="toast" id="toast"></div>
 
-    <script src="js/tvbox.js?v=4"></script>
-    <script src="js/tvbox-ui.js?v=4"></script>
+    <script src="js/tvbox.js?v=5"></script>
+    <script src="js/tvbox-ui.js?v=5"></script>
 </body>
 </html>
