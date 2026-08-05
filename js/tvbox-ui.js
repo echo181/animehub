@@ -18,8 +18,20 @@ function showToast(msg, duration = 2500) {
 async function initTVBox() {
     const configs = TVBoxStore.getConfigs();
 
-    if (configs.length === 0) {
+    // 版本检查：清除旧配置（v2）
+    const configVersion = localStorage.getItem('tvbox_config_version');
+    if (configVersion !== '2') {
+        TVBoxStore.setConfigs([]);
+        localStorage.setItem('tvbox_config_version', '2');
+    }
+
+    const freshConfigs = TVBoxStore.getConfigs();
+    if (freshConfigs.length === 0) {
+        // 默认使用本地配置文件（保证始终可加载）
+        TVBoxStore.addConfig('tvbox-config.json', '默认源（本地）');
+        // 预设远程源
         const presets = [
+            { url: 'https://pastebin.com/raw/gtbKvnE1', name: 'Pastebin综合源' },
             { url: 'http://饭太硬.top/tv', name: '饭太硬' },
             { url: 'https://qiaoji8.com/tvbox/json.json', name: '俏佳人' },
             { url: 'http://hccx.top/tv', name: '荷城茶秀' },
@@ -52,7 +64,18 @@ async function loadConfig(url) {
     document.getElementById('siteList').innerHTML = '<div class="loading-text">⏳ 正在加载影视源配置...</div>';
 
     try {
-        const result = await TVBoxEngine.loadConfig(url);
+        let result;
+        // 本地配置文件直接加载（无需代理）
+        if (url.startsWith('tvbox-config.json') || url.startsWith('./tvbox-config.json') || url.startsWith('/tvbox-config.json')) {
+            const resp = await fetch(url);
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+            const data = await resp.json();
+            TVBoxEngine.sites = (data.sites || []).filter(s => s.type !== 3);
+            TVBoxEngine.parses = data.parses || [];
+            result = { sites: TVBoxEngine.sites, parses: TVBoxEngine.parses };
+        } else {
+            result = await TVBoxEngine.loadConfig(url);
+        }
         renderSites(result.sites);
     } catch (err) {
         document.getElementById('siteList').innerHTML = `
