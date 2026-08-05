@@ -16,30 +16,18 @@ function showToast(msg, duration = 2500) {
 
 // ========== 初始化 ==========
 async function initTVBox() {
-    const configs = TVBoxStore.getConfigs();
-
-    // 版本检查：清除旧配置（v3）
+    // 版本检查：清除旧配置（v4 - 清理失效远程源，确保本地4个源可用）
     const configVersion = localStorage.getItem('tvbox_config_version');
-    if (configVersion !== '3') {
+    if (configVersion !== '4') {
         TVBoxStore.setConfigs([]);
-        localStorage.setItem('tvbox_config_version', '3');
+        localStorage.removeItem('tvbox_active');
+        localStorage.setItem('tvbox_config_version', '4');
     }
 
     const freshConfigs = TVBoxStore.getConfigs();
     if (freshConfigs.length === 0) {
-        // 默认使用本地配置文件（保证始终可加载）
-        TVBoxStore.addConfig('tvbox-config.json', '默认源（本地）');
-        // 预设远程源
-        const presets = [
-            { url: 'https://pastebin.com/raw/gtbKvnE1', name: 'Pastebin综合源' },
-            { url: 'http://饭太硬.top/tv', name: '饭太硬' },
-            { url: 'https://qiaoji8.com/tvbox/json.json', name: '俏佳人' },
-            { url: 'http://hccx.top/tv', name: '荷城茶秀' },
-            { url: 'http://肥猫.com', name: '肥猫' },
-            { url: 'https://yydsys.top/duo', name: '天天开心' },
-            { url: 'https://0a.io/tv', name: '0a' }
-        ];
-        presets.forEach(p => TVBoxStore.addConfig(p.url, p.name));
+        // 本地配置文件永远排第一（保证始终可加载）
+        TVBoxStore.addConfig('tvbox-config.json', '⭐ 默认源（本地4源）');
     }
 
     renderConfigList();
@@ -78,15 +66,26 @@ function switchSource(url) {
     loadConfig(url);
 }
 
+const LOCAL_CONFIG_URL = 'tvbox-config.json';
+const LOCAL_CONFIG_NAME = '⭐ 默认源（本地4源）';
+
+function ensureLocalConfig() {
+    const configs = TVBoxStore.getConfigs();
+    if (!configs.find(c => c.url === LOCAL_CONFIG_URL || c.url === './tvbox-config.json')) {
+        TVBoxStore.addConfig(LOCAL_CONFIG_URL, LOCAL_CONFIG_NAME);
+    }
+}
+
 async function loadConfig(url) {
     TVBoxStore.setActive(url);
     renderSourceSelector();
     document.getElementById('siteList').innerHTML = '<div class="loading-text">⏳ 正在加载影视源配置...</div>';
 
+    const isLocal = url.startsWith('tvbox-config.json') || url.startsWith('./tvbox-config.json') || url.startsWith('/tvbox-config.json');
+
     try {
         let result;
-        // 本地配置文件直接加载（无需代理）
-        if (url.startsWith('tvbox-config.json') || url.startsWith('./tvbox-config.json') || url.startsWith('/tvbox-config.json')) {
+        if (isLocal) {
             const resp = await fetch(url);
             if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
             const data = await resp.json();
@@ -98,13 +97,43 @@ async function loadConfig(url) {
         }
         renderSites(result.sites);
     } catch (err) {
-        document.getElementById('siteList').innerHTML = `
-            <div class="error-box">
-                <p>❌ 加载失败：${err.message}</p>
-                <p class="error-hint">可能是该源暂时不可用，请尝试其他源或稍后重试</p>
-                <button class="btn-primary" onclick="showConfigPanel()">更换影视源</button>
-            </div>
-        `;
+        if (isLocal) {
+            document.getElementById('siteList').innerHTML = `
+                <div class="error-box">
+                    <p>❌ 加载失败：${err.message}</p>
+                    <p class="error-hint">本地源加载异常，请刷新页面重试</p>
+                    <button class="btn-primary" onclick="location.reload()">刷新页面</button>
+                </div>
+            `;
+            return;
+        }
+
+        // 远程源失败 → 自动回退到本地默认源
+        showToast('⚠️ 该源不可用，自动切换到本地默认源');
+        ensureLocalConfig();
+        TVBoxStore.setActive(LOCAL_CONFIG_URL);
+        renderSourceSelector();
+
+        // 清除之前的失败active，重新加载本地
+        try {
+            const resp = await fetch(LOCAL_CONFIG_URL);
+            const data = await resp.json();
+            TVBoxEngine.sites = (data.sites || []).filter(s => s.type !== 3);
+            TVBoxEngine.parses = data.parses || [];
+            renderSites(TVBoxEngine.sites);
+            document.getElementById('siteList').insertAdjacentHTML('afterbegin', `
+                <div class="error-box" style="margin-bottom:16px;padding:12px 16px;font-size:13px;background:rgba(251,191,36,0.12);border:1px solid rgba(251,191,36,0.35);">
+                    ⚠️ 原远程源加载失败，已自动切换到本地默认源（量子/光速/百度/新浪）
+                </div>
+            `);
+        } catch (err2) {
+            document.getElementById('siteList').innerHTML = `
+                <div class="error-box">
+                    <p>❌ 加载失败：${err.message}</p>
+                    <button class="btn-primary" onclick="showConfigPanel()">更换影视源</button>
+                </div>
+            `;
+        }
     }
 }
 
