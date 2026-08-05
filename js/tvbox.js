@@ -238,19 +238,35 @@ let TVBoxEngine = {
 
     parsePlayUrl(playUrl) {
         if (!playUrl) return [];
+
+        // 可能有多个播放源，用 $$$ 分隔
+        // 例如: liangzi$ep1$url1#ep2$url2$$$lzm3u8$ep1$url1.m3u8#ep2$url2.m3u8
+        const sources = playUrl.split('$$$');
+
+        // 优先选择包含 .m3u8 或 .mp4 的源
+        let bestSource = sources[0];
+        for (const src of sources) {
+            if (src.includes('.m3u8') || src.includes('.mp4')) {
+                bestSource = src;
+                break;
+            }
+        }
+
         const episodes = [];
-        const groups = playUrl.split('#');
+        const groups = bestSource.split('#');
         for (const group of groups) {
             const parts = group.split('$');
             if (parts.length >= 2) {
-                // 格式可能是 title$url 或 source$title$url
                 // URL 始终是最后一个 $ 后面的部分
-                episodes.push({
-                    ep: episodes.length + 1,
-                    title: parts[0].trim() || `第${episodes.length + 1}集`,
-                    url: parts[parts.length - 1].trim()
-                });
-            } else if (group.trim()) {
+                const url = parts[parts.length - 1].trim();
+                if (url && url.startsWith('http')) {
+                    episodes.push({
+                        ep: episodes.length + 1,
+                        title: parts[0].trim() || `第${episodes.length + 1}集`,
+                        url: url
+                    });
+                }
+            } else if (group.trim() && group.trim().startsWith('http')) {
                 episodes.push({
                     ep: episodes.length + 1,
                     title: `第${episodes.length + 1}集`,
