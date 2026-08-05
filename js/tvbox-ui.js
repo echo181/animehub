@@ -18,11 +18,11 @@ function showToast(msg, duration = 2500) {
 async function initTVBox() {
     const configs = TVBoxStore.getConfigs();
 
-    // 版本检查：清除旧配置（v2）
+    // 版本检查：清除旧配置（v3）
     const configVersion = localStorage.getItem('tvbox_config_version');
-    if (configVersion !== '2') {
+    if (configVersion !== '3') {
         TVBoxStore.setConfigs([]);
-        localStorage.setItem('tvbox_config_version', '2');
+        localStorage.setItem('tvbox_config_version', '3');
     }
 
     const freshConfigs = TVBoxStore.getConfigs();
