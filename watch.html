@@ -15,7 +15,7 @@
             <button class="cast-btn" title="投屏">📺</button>
         </div>
         <div class="video-wrapper" id="videoWrapper">
-            <video id="videoPlayer" class="video-player" controls playsinline preload="metadata" poster="">
+            <video id="videoPlayer" class="video-player" playsinline preload="metadata" poster="">
                 您的浏览器不支持视频播放
             </video>
             <div class="player-controls-custom" id="playerControls">
@@ -23,6 +23,13 @@
             </div>
             <div class="loading-spinner" id="loadingSpinner" style="display:none">
                 <div class="spinner"></div>
+            </div>
+            <div class="player-error" id="playerError" style="display:none">
+                <div class="error-icon">⚠️</div>
+                <div class="error-title">视频加载失败</div>
+                <div class="error-desc" id="errorDesc">可能是视频源不可访问或跨域限制</div>
+                <button class="btn-primary" onclick="showConfigGuide()">📖 查看配置方法</button>
+                <button class="btn-fav" onclick="retryVideo()">🔄 重试</button>
             </div>
         </div>
         <div class="progress-bar-container">
@@ -58,6 +65,11 @@
         <div class="watch-info">
             <h1 class="watch-title" id="watchTitle"></h1>
             <div class="watch-meta" id="watchMeta"></div>
+            <div class="demo-banner" id="demoBanner" style="display:none">
+                <span class="demo-icon">💡</span>
+                <span id="demoText">这是演示视频源。接入真实动漫资源请点击下方按钮</span>
+                <button class="demo-config-btn" onclick="showConfigGuide()">如何配置？</button>
+            </div>
             <div class="watch-actions">
                 <button class="btn-fav" id="favBtn">⭐ 追番</button>
                 <button class="btn-primary" id="prevBtn">上一集</button>
@@ -74,7 +86,78 @@
             <h3 class="detail-section-title">动漫详情</h3>
             <div class="anime-desc" id="animeDesc"></div>
         </div>
+
+        <div class="detail-section">
+            <h3 class="detail-section-title">⚙️ 视频源设置</h3>
+            <div class="source-config">
+                <p class="source-tip">💡 本站演示视频使用公共测试源。要播放真实动漫，需要替换为您自己的视频源。</p>
+                <button class="btn-primary" onclick="showConfigGuide()">📖 查看详细配置教程</button>
+                <button class="btn-fav" onclick="openDataSourceUrl()">🔗 推荐影视数据源</button>
+            </div>
+        </div>
     </main>
+
+    <div class="config-modal" id="configModal" style="display:none">
+        <div class="config-mask" onclick="hideConfigGuide()"></div>
+        <div class="config-content">
+            <button class="config-close" onclick="hideConfigGuide()">✕</button>
+            <h2>🎬 如何接入真实动漫视频源？</h2>
+            <div class="config-steps">
+                <div class="config-step">
+                    <div class="step-num">1</div>
+                    <div>
+                        <h3>准备视频源 URL</h3>
+                        <p>需要一个可以直接访问的视频直链，支持格式：</p>
+                        <div class="format-tags">
+                            <span>.mp4</span>
+                            <span>.m3u8 (HLS)</span>
+                            <span>.webm</span>
+                            <span>.ogg</span>
+                        </div>
+                        <p class="step-warning">⚠️ 视频服务器必须支持 <b>CORS 跨域访问</b>，否则浏览器无法加载</p>
+                    </div>
+                </div>
+                <div class="config-step">
+                    <div class="step-num">2</div>
+                    <div>
+                        <h3>修改 data.js</h3>
+                        <p>打开项目中的 <code>js/data.js</code>，找到对应动漫的 <code>videoSources</code> 数组，替换 URL：</p>
+                        <pre class="code-block">{
+    ep: 1,
+    title: '第1话',
+    url: 'https://你的视频服务器.com/动漫/第01话.mp4'
+}</pre>
+                    </div>
+                </div>
+                <div class="config-step">
+                    <div class="step-num">3</div>
+                    <div>
+                        <h3>推送到 GitHub</h3>
+                        <p>修改完成后，推送代码到 GitHub Pages 即可生效。详细步骤见 README.md</p>
+                    </div>
+                </div>
+                <div class="config-step">
+                    <div class="step-num">💡</div>
+                    <div>
+                        <h3>推荐免费/付费视频源</h3>
+                        <ul>
+                            <li><b>公共测试源（仅演示）</b>：Big Buck Bunny、Elephants Dream 等</li>
+                            <li><b>自建服务器</b>：使用 Nginx + 视频文件托管，需开启 CORS</li>
+                            <li><b>第三方存储</b>：阿里云 OSS / 腾讯云 COS / 七牛云</li>
+                            <li><b>视频 CDN</b>：阿里云视频点播 / 腾讯云点播</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="config-step">
+                    <div class="step-num">🔒</div>
+                    <div>
+                        <h3>关于版权</h3>
+                        <p>请确保您有权分发相关动漫视频内容。上传侵权内容可能导致 GitHub Pages 被封禁。建议仅用于个人学习。</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <div class="toast" id="toast"></div>
 

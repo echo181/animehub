@@ -323,19 +323,22 @@ const ANIME_DATA = [
 
 function generateEpisodes(count) {
     const episodes = [];
+    // 公共测试视频源（仅用于演示，国内可能无法访问）
+    // 替换为您自己的视频源 URL，支持 .mp4 / .m3u8 / .webm
     const samples = [
-        'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8',
         'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
         'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
         'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-        'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4'
+        'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+        'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4'
     ];
     for (let i = 1; i <= count; i++) {
         episodes.push({
             ep: i,
             title: i === 1 ? '第1话 开始的地方' : `第${i}话`,
             url: samples[i % samples.length],
-            isNew: i === count
+            isNew: i === count,
+            isDemo: true  // 标记为演示视频，会显示配置引导
         });
     }
     return episodes;

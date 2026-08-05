@@ -54,6 +54,7 @@ let currentAnime = null;
 let currentEp = 1;
 let player = null;
 let progressTimer = null;
+let retryCount = 0;
 
 function formatTime(sec) {
     if (isNaN(sec) || sec < 0) return '00:00';
@@ -100,6 +101,15 @@ function renderWatch() {
         <span>更新至 ${currentAnime.updatedEp} 话</span>
     `;
 
+    const demoBanner = document.getElementById('demoBanner');
+    const demoText = document.getElementById('demoText');
+    if (epData.isDemo) {
+        demoBanner.style.display = 'flex';
+        demoText.textContent = `📺 当前播放：${currentAnime.name} 第${currentEp}话（演示视频源）`;
+    } else {
+        demoBanner.style.display = 'none';
+    }
+
     const isFav = Store.isFavorite(currentAnime.id);
     const favBtn = document.getElementById('favBtn');
     favBtn.classList.toggle('active', isFav);
@@ -114,44 +124,54 @@ function initPlayer(epData) {
     player = document.getElementById('videoPlayer');
     const loading = document.getElementById('loadingSpinner');
     const bigPlay = document.getElementById('bigPlayBtn');
-    const playPauseBtn = document.getElementById('playPauseBtn');
-    const progress = document.getElementById('progressPlayed');
-    const buffered = document.getElementById('progressBuffered');
-    const thumb = document.getElementById('progressThumb');
-    const progressBar = document.getElementById('progressBar');
-    const currEl = document.getElementById('currentTime');
-    const totalEl = document.getElementById('totalTime');
-    const prevBtn = document.getElementById('prevEpBtn');
-    const nextBtn = document.getElementById('nextEpBtn');
-    const muteBtn = document.getElementById('muteBtn');
-    const volume = document.getElementById('volumeSlider');
-    const fullscreenBtn = document.getElementById('fullscreenBtn');
+    const errorOverlay = document.getElementById('playerError');
+    const errorDesc = document.getElementById('errorDesc');
 
     if (progressTimer) clearInterval(progressTimer);
+    retryCount = 0;
+
+    player.onerror = null;
+    player.pause();
+    player.removeAttribute('src');
+    player.load();
+    errorOverlay.style.display = 'none';
+    bigPlay.classList.remove('hidden');
 
     player.src = epData.url;
-    player.load();
 
     const saved = Store.getProgress(currentAnime.id)[currentEp];
-    if (saved && saved.time > 10) {
-        showToast(`⏯ 上次看到 ${formatTime(saved.time)}，为您恢复进度`);
-        player.addEventListener('loadedmetadata', function restore() {
-            try { player.currentTime = Math.min(saved.time, player.duration - 5); } catch {}
-            player.removeEventListener('loadedmetadata', restore);
-        });
-    }
+    const restoreOnLoad = saved && saved.time > 10;
 
-    player.addEventListener('loading', () => loading.style.display = 'flex');
-    player.addEventListener('waiting', () => loading.style.display = 'flex');
-    player.addEventListener('canplay', () => loading.style.display = 'none');
+    const restoreListener = () => {
+        if (saved && saved.time > 10) {
+            try { player.currentTime = Math.min(saved.time, (player.duration || saved.time) - 5); } catch {}
+        }
+        player.removeEventListener('loadedmetadata', restoreListener);
+    };
+    player.addEventListener('loadedmetadata', restoreListener);
+
+    const onError = () => {
+        loading.style.display = 'none';
+        const errType = determineError(player, epData);
+        errorDesc.textContent = errType;
+        errorOverlay.style.display = 'flex';
+        bigPlay.classList.add('hidden');
+    };
+
+    player.addEventListener('error', onError, { once: true });
+
+    player.addEventListener('stalled', () => {
+        showToast('⚠️ 视频缓冲卡住，尝试继续加载...');
+    });
+
+    player.addEventListener('waiting', () => { loading.style.display = 'flex'; });
     player.addEventListener('playing', () => {
         loading.style.display = 'none';
+        errorOverlay.style.display = 'none';
         bigPlay.classList.add('hidden');
-        playPauseBtn.textContent = '⏸';
     });
     player.addEventListener('pause', () => {
-        bigPlay.classList.remove('hidden');
-        playPauseBtn.textContent = '▶';
+        if (player.readyState > 0) bigPlay.classList.remove('hidden');
     });
     player.addEventListener('ended', () => {
         if (currentEp < currentAnime.updatedEp) {
@@ -165,18 +185,19 @@ function initPlayer(epData) {
     player.addEventListener('timeupdate', () => {
         if (!player.duration) return;
         const pct = (player.currentTime / player.duration) * 100;
-        progress.style.width = pct + '%';
-        thumb.style.left = pct + '%';
-        currEl.textContent = formatTime(player.currentTime);
+        document.getElementById('progressPlayed').style.width = pct + '%';
+        document.getElementById('progressThumb').style.left = pct + '%';
+        document.getElementById('currentTime').textContent = formatTime(player.currentTime);
     });
 
     player.addEventListener('loadedmetadata', () => {
-        totalEl.textContent = formatTime(player.duration);
+        document.getElementById('totalTime').textContent = formatTime(player.duration);
     });
 
     player.addEventListener('progress', () => {
         if (player.buffered.length > 0 && player.duration) {
-            buffered.style.width = (player.buffered.end(player.buffered.length - 1) / player.duration * 100) + '%';
+            document.getElementById('progressBuffered').style.width =
+                (player.buffered.end(player.buffered.length - 1) / player.duration * 100) + '%';
         }
     });
 
@@ -187,30 +208,30 @@ function initPlayer(epData) {
     }, 5000);
 
     bigPlay.onclick = () => {
-        if (player.paused) player.play().catch(() => showToast('请手动点击播放'));
-        else player.pause();
+        if (player.paused) {
+            player.play().catch(err => {
+                showToast('⚠️ 视频加载失败，请点击「查看配置方法」');
+            });
+        } else {
+            player.pause();
+        }
     };
 
-    playPauseBtn.onclick = () => {
-        if (player.paused) player.play().catch(() => {});
-        else player.pause();
+    document.getElementById('playPauseBtn').onclick = () => {
+        if (player.paused) {
+            player.play().catch(() => {});
+        } else {
+            player.pause();
+        }
     };
 
-    prevBtn.onclick = prevEp;
-    nextBtn.onclick = nextEp;
-
+    document.getElementById('prevEpBtn').onclick = prevEp;
+    document.getElementById('nextEpBtn').onclick = nextEp;
     document.getElementById('prevBtn').onclick = prevEp;
     document.getElementById('nextBtn').onclick = nextEp;
 
     let isDragging = false;
-    progressBar.onmousedown = progressBar.ontouchstart = (e) => {
-        isDragging = true;
-        seek(e);
-    };
-    document.onmousemove = document.ontouchmove = (e) => {
-        if (isDragging) seek(e);
-    };
-    document.onmouseup = document.ontouchend = () => { isDragging = false; };
+    const progressBar = document.getElementById('progressBar');
 
     function seek(e) {
         if (!player.duration) return;
@@ -220,32 +241,98 @@ function initPlayer(epData) {
         player.currentTime = pct * player.duration;
     }
 
-    muteBtn.onclick = () => {
+    progressBar.onmousedown = progressBar.ontouchstart = (e) => {
+        isDragging = true;
+        seek(e);
+    };
+    document.onmousemove = document.ontouchmove = (e) => {
+        if (isDragging) seek(e);
+    };
+    document.onmouseup = document.ontouchend = () => { isDragging = false; };
+
+    document.getElementById('muteBtn').onclick = () => {
         player.muted = !player.muted;
-        muteBtn.textContent = player.muted ? '🔇' : '🔊';
-        volume.value = player.muted ? 0 : player.volume;
+        document.getElementById('muteBtn').textContent = player.muted ? '🔇' : '🔊';
+        document.getElementById('volumeSlider').value = player.muted ? 0 : player.volume;
     };
 
-    volume.oninput = () => {
-        player.volume = volume.value;
-        player.muted = volume.value === 0;
-        muteBtn.textContent = player.muted ? '🔇' : '🔊';
+    document.getElementById('volumeSlider').oninput = () => {
+        const vol = Number(document.getElementById('volumeSlider').value);
+        player.volume = vol;
+        player.muted = vol === 0;
+        document.getElementById('muteBtn').textContent = vol === 0 ? '🔇' : '🔊';
     };
 
-    fullscreenBtn.onclick = toggleFullscreen;
+    document.getElementById('fullscreenBtn').onclick = toggleFullscreen;
 
     document.addEventListener('keydown', (e) => {
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
         switch(e.key) {
-            case ' ': e.preventDefault(); playPauseBtn.onclick(); break;
+            case ' ': e.preventDefault(); document.getElementById('playPauseBtn').click(); break;
             case 'ArrowRight': player.currentTime = Math.min(player.duration || 0, player.currentTime + 10); break;
             case 'ArrowLeft': player.currentTime = Math.max(0, player.currentTime - 10); break;
-            case 'ArrowUp': e.preventDefault(); volume.value = Math.min(1, Number(volume.value) + 0.1); volume.oninput(); break;
-            case 'ArrowDown': e.preventDefault(); volume.value = Math.max(0, Number(volume.value) - 0.1); volume.oninput(); break;
+            case 'ArrowUp':
+                e.preventDefault();
+                const vol = Math.min(1, Number(document.getElementById('volumeSlider').value) + 0.1);
+                document.getElementById('volumeSlider').value = vol;
+                document.getElementById('volumeSlider').oninput();
+                break;
+            case 'ArrowDown':
+                e.preventDefault();
+                const v2 = Math.max(0, Number(document.getElementById('volumeSlider').value) - 0.1);
+                document.getElementById('volumeSlider').value = v2;
+                document.getElementById('volumeSlider').oninput();
+                break;
             case 'f': case 'F': toggleFullscreen(); break;
-            case 'm': case 'M': muteBtn.onclick(); break;
+            case 'm': case 'M': document.getElementById('muteBtn').click(); break;
         }
     });
+}
+
+function determineError(player, epData) {
+    const networkState = player.networkState;
+    const error = player.error;
+    if (!epData || !epData.url) return '视频源 URL 未配置，请在 data.js 中设置';
+    if (networkState === 3) return '网络已断开，请检查网络连接';
+    if (networkState === 2) return '无法加载视频源（服务器不可达），可能被墙或需要翻墙访问';
+    if (networkState === 1 && error) {
+        if (error.code === 1) return '视频加载被中断';
+        if (error.code === 2) return '网络错误：视频源服务器无响应或跨域阻止';
+        if (error.code === 3) return '视频解码失败：可能是格式不兼容';
+        if (error.code === 4) return '视频格式不支持或资源不存在';
+    }
+    return '视频源不可访问。可能需要：1)替换为国内可访问的视频源 2)开启 VPN 3)检查 CORS 配置';
+}
+
+function retryVideo() {
+    const epData = currentAnime.videoSources[currentEp - 1];
+    const errorOverlay = document.getElementById('playerError');
+    errorOverlay.style.display = 'none';
+    retryCount++;
+    if (retryCount > 2) {
+        showToast('重试次数过多，请查看配置方法');
+        showConfigGuide();
+        return;
+    }
+    showToast(`🔄 第${retryCount}次重试...`);
+    initPlayer(epData);
+    setTimeout(() => {
+        if (player.paused && player.readyState < 2) {
+            player.play().catch(() => {});
+        }
+    }, 500);
+}
+
+function showConfigGuide() {
+    document.getElementById('configModal').style.display = 'flex';
+}
+
+function hideConfigGuide() {
+    document.getElementById('configModal').style.display = 'none';
+}
+
+function openDataSourceUrl() {
+    showToast('请在 data.js 中配置您自己的视频源 URL');
 }
 
 function toggleFullscreen() {
