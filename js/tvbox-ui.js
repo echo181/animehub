@@ -311,42 +311,126 @@ async function playEpisode(index) {
 
     try {
         const resolved = await TVBoxEngine.resolvePlayUrl(ep.url);
-        document.getElementById('tvboxLoading').style.display = 'none';
 
         if (resolved.type === 'iframe') {
+            document.getElementById('tvboxLoading').style.display = 'none';
             document.getElementById('tvboxErrorDesc').textContent = '该视频需要解析播放，暂不支持网页播放。请尝试其他源或集数。';
             document.getElementById('tvboxPlayerError').style.display = 'flex';
             return;
         }
 
         if (resolved.type === 'hls' || resolved.url.includes('.m3u8')) {
-            if (Hls.isSupported()) {
-                hlsInstance = new Hls();
-                hlsInstance.loadSource(resolved.url);
-                hlsInstance.attachMedia(video);
-                hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => video.play().catch(() => {}));
-                hlsInstance.on(Hls.Events.ERROR, (_, data) => {
-                    if (data.fatal) {
-                        showTvboxError('HLS 播放失败：' + (data.details || '未知错误'));
-                    }
-                });
-            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-                video.src = resolved.url;
-                video.play().catch(() => {});
-            } else {
-                showTvboxError('浏览器不支持 HLS 播放');
-            }
+            await playHls(resolved.url, video);
         } else {
+            // MP4 直播
             video.src = resolved.url;
-            video.play().catch(() => {});
+            document.getElementById('tvboxLoading').style.display = 'none';
+            video.play().catch(() => {
+                // 直连失败，尝试代理
+                const proxiedUrl = CORS_PROXIES[0](resolved.url);
+                video.src = proxiedUrl;
+                video.play().catch(() => {
+                    showTvboxError('视频加载失败，可能源不可用或跨域限制');
+                });
+            });
         }
 
         video.onerror = () => {
-            showTvboxError('视频加载失败，可能源不可用或跨域限制');
+            showTvboxError('视频加载失败，可能源不可用或跨域限制。请尝试其他源或集数。');
         };
 
     } catch (err) {
         showTvboxError(err.message);
+    }
+}
+
+async function playHls(url, video) {
+    // 先尝试直连
+    const tryDirect = () => new Promise((resolve, reject) => {
+        if (!Hls.isSupported()) {
+            if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                video.src = url;
+                video.play().then(resolve).catch(reject);
+            } else {
+                reject(new Error('浏览器不支持 HLS 播放'));
+            }
+            return;
+        }
+
+        const hls = new Hls({
+            maxBufferLength: 30,
+            maxMaxBufferLength: 60,
+            enableWorker: true,
+        });
+        hls.loadSource(url);
+        hls.attachMedia(video);
+
+        let resolved = false;
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+            video.play().then(() => {
+                resolved = true;
+                hlsInstance = hls;
+                resolve();
+            }).catch(() => {});
+        });
+
+        hls.on(Hls.Events.ERROR, (_, data) => {
+            if (data.fatal && !resolved) {
+                hls.destroy();
+                reject(new Error(data.details || 'HLS加载失败'));
+            } else if (data.fatal) {
+                showTvboxError('HLS 播放失败：' + (data.details || '未知错误'));
+            }
+        });
+
+        // 15秒超时
+        setTimeout(() => {
+            if (!resolved) {
+                hls.destroy();
+                reject(new Error('HLS加载超时'));
+            }
+        }, 15000);
+    });
+
+    try {
+        document.getElementById('tvboxLoading').style.display = 'flex';
+        await tryDirect();
+        document.getElementById('tvboxLoading').style.display = 'none';
+    } catch (directErr) {
+        // 直连失败，尝试通过CORS代理
+        console.log('直连失败，尝试代理:', directErr.message);
+        try {
+            const proxiedUrl = CORS_PROXIES[0](url);
+            const hls = new Hls({
+                maxBufferLength: 30,
+                maxMaxBufferLength: 60,
+                enableWorker: true,
+            });
+            hls.loadSource(proxiedUrl);
+            hls.attachMedia(video);
+
+            await new Promise((resolve, reject) => {
+                hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                    video.play().then(resolve).catch(reject);
+                });
+                hls.on(Hls.Events.ERROR, (_, data) => {
+                    if (data.fatal) {
+                        hls.destroy();
+                        reject(new Error(data.details || '代理HLS失败'));
+                    }
+                });
+                setTimeout(() => {
+                    hls.destroy();
+                    reject(new Error('代理HLS超时'));
+                }, 15000);
+            });
+
+            hlsInstance = hls;
+            document.getElementById('tvboxLoading').style.display = 'none';
+        } catch (proxyErr) {
+            document.getElementById('tvboxLoading').style.display = 'none';
+            showTvboxError(`视频加载失败（直连:${directErr.message} / 代理:${proxyErr.message}）。请尝试其他源。`);
+        }
     }
 }
 

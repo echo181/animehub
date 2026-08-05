@@ -243,10 +243,12 @@ let TVBoxEngine = {
         for (const group of groups) {
             const parts = group.split('$');
             if (parts.length >= 2) {
+                // 格式可能是 title$url 或 source$title$url
+                // URL 始终是最后一个 $ 后面的部分
                 episodes.push({
                     ep: episodes.length + 1,
                     title: parts[0].trim() || `第${episodes.length + 1}集`,
-                    url: parts[1].trim()
+                    url: parts[parts.length - 1].trim()
                 });
             } else if (group.trim()) {
                 episodes.push({
@@ -322,21 +324,22 @@ let TVBoxEngine = {
     isDirectPlayUrl(url) {
         if (!url) return false;
         const lower = url.toLowerCase();
-        return lower.endsWith('.m3u8') ||
-               lower.endsWith('.mp4') ||
+        return lower.includes('.m3u8') ||
+               lower.includes('.mp4') ||
                lower.endsWith('.webm') ||
-               lower.endsWith('.ogg') ||
-               lower.includes('.m3u8?') ||
-               lower.includes('.mp4?');
+               lower.endsWith('.ogg');
     },
 
     async resolvePlayUrl(url) {
         if (this.isDirectPlayUrl(url)) {
-            return { url, type: 'direct' };
+            const isHls = url.toLowerCase().includes('.m3u8');
+            return { url, type: isHls ? 'hls' : 'mp4' };
         }
 
+        // 尝试通过解析接口获取直链
         if (this.parses.length > 0) {
             for (const parse of this.parses) {
+                if (!parse.url || !parse.url.startsWith('http')) continue;
                 try {
                     const parseUrl = parse.url + encodeURIComponent(url);
                     const resp = await fetchWithProxy(parseUrl);
@@ -349,6 +352,10 @@ let TVBoxEngine = {
             }
         }
 
+        // 最后尝试直接作为 URL 播放
+        if (url.startsWith('http')) {
+            return { url, type: 'iframe' };
+        }
         return { url, type: 'iframe' };
     }
 };
